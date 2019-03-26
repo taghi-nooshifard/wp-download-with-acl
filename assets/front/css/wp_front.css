@@ -1,3 +1,11 @@
+.wp_download_error{
+    font-family: Tahoma;
+    color: #f21e17;
+}
+.wp_download_success{
+    font-family: Tahoma;
+    color: #2327f2;
+}
 #wp_download_login_or_register{
     border: wave 2px red;
     /*border-style: wave;*/
@@ -7,50 +15,12 @@ background-color: #7771ff;
     /*height: 200px;*/
     /*width: 100px;*/
 }
-.tabs {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    overflow: hidden;
-    border-bottom: 1px solid #999;
-    direction: rtl;
-}
+.ui-tabs { direction: rtl; }
+.ui-tabs .ui-tabs-nav li.ui-tabs-selected,
+.ui-tabs .ui-tabs-nav li.ui-state-default {float: right; }
+.ui-tabs .ui-tabs-nav li a { float: right; }
 
-.tabs li {
-    float: right;
-    border: 1px solid #999;
-    border-bottom: none;
-    background: #e0e0e0;
-}
 
-.tabs li a {
-    display: block;
-    padding: 10px 20px;
-    font-size: 16px;
-    color: #000;
-    text-decoration: none;
-}
-
-.tabs li a:hover {
-    background: #ccc;
-}
-
-.tabs li.active,
-.tabs li.active a:hover {
-    font-weight: bold;
-    background: #fff;
-}
-
-.tab_container {
-    border: 1px solid #999;
-    border-top: none;
-    background: #fff;
-}
-
-.tab_content {
-    padding: 20px;
-    font-size: 16px;
-}
 button.ui-dialog-titlebar-close
 {
     visibility: hidden;

@@ -1,6 +1,24 @@
 .wp_download_error{
+    font-family: Tahoma;
     color: #f21e17;
 }
 .wp_download_success{
+    font-family: Tahoma;
     color: #2327f2;
+}
+.ui-tabs { direction: rtl; }
+.ui-tabs .ui-tabs-nav li.ui-tabs-selected,
+.ui-tabs .ui-tabs-nav li.ui-state-default {float: right; }
+.ui-tabs .ui-tabs-nav li a { float: right; }
+
+.wp_download_form{
+    font-family: Tahoma;
+    font-size: 14px;
+}
+.wp_download_form button,.wp_download_form h2 ,.wp_download_form input{
+    font-family: Tahoma;
+}
+
+.ui-dialog-titlebar-close {
+    visibility: hidden;
 }

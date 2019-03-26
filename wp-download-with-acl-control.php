@@ -14,8 +14,10 @@ Text Domain: wp_download_with_acl
 define('WP_DOWNLOADER_INC',plugin_dir_path(__FILE__).DIRECTORY_SEPARATOR.'inc'.DIRECTORY_SEPARATOR);
 define('WP_DOWNLOADER_TPL',plugin_dir_path(__FILE__).DIRECTORY_SEPARATOR.'tpl'.DIRECTORY_SEPARATOR);
 define('WP_DOWNLOADER_ASSETS',plugin_dir_url(__FILE__).'/assets/');
+define('WP_DOWNLOADER_ROOT',plugin_dir_path(__FILE__));
 
 include WP_DOWNLOADER_INC.'admin'.DIRECTORY_SEPARATOR.'admin_shortcode.php';
+include plugin_dir_path(__FILE__)."functions.php";
 
 //Plugin Constructor
 register_activation_hook(__FILE__,'wp_download_activation_hook');
@@ -29,6 +31,8 @@ function wp_download_activation_hook(){
 
 
 }
+
+
 // Add Menu Admin
 add_action('admin_menu','wp_downloader_admin_menu');
 function wp_downloader_admin_menu(){
@@ -41,6 +45,7 @@ function wp_downloader_admin_menu(){
 }
 
 function wp_downloader_admin_main_handler(){
+    $userList = getUserList();
     include  WP_DOWNLOADER_INC.'admin'.DIRECTORY_SEPARATOR.'main_menu.php';
 }
 
@@ -49,8 +54,11 @@ add_action('admin_enqueue_scripts','wp_download_admin_enqueue_scripts_handler');
 add_action('wp_enqueue_scripts','wp_download_admin_enqueue_scripts_handler');
 function wp_download_admin_enqueue_scripts_handler(){
     if(is_admin()){
-        wp_register_script('wp_download_admin_jquery',WP_DOWNLOADER_ASSETS.'admin/js/wp_admin_jquery.js',['jquery','jquery-ui-core','jquery-ui-dialog'],'1.0',true);
+        wp_register_script('wp_download_admin_jquery',WP_DOWNLOADER_ASSETS.'admin/js/wp_admin_jquery.js',['jquery','jquery-ui-core','jquery-ui-dialog','jquery-ui-tabs','jquery-ui-button','jquery-effects-core','jquery-effects-fade','jquery-effects-explode'],'1.0',true);
         wp_enqueue_script('wp_download_admin_jquery');
+
+        wp_register_style('jquery-ui-smoothness', WP_DOWNLOADER_ASSETS.'admin/css/jquery-ui.css', null, '1.11.4');
+        wp_enqueue_style('jquery-ui-smoothness');
 
         wp_register_style('wp_download_admin_css',WP_DOWNLOADER_ASSETS.'admin/css/wp_admin.css',null,'1.0');
         wp_enqueue_style('wp_download_admin_css');
@@ -59,6 +67,9 @@ function wp_download_admin_enqueue_scripts_handler(){
     }
     else
     {
+        wp_register_style('jquery-ui-smoothness', WP_DOWNLOADER_ASSETS.'admin/css/jquery-ui.css', null, '1.11.4');
+        wp_enqueue_style('jquery-ui-smoothness');
+
         wp_register_script(
             'wp_download_front_jquery',
             WP_DOWNLOADER_ASSETS.'front/js/wp_front_jquery.js',
@@ -73,20 +84,268 @@ function wp_download_admin_enqueue_scripts_handler(){
     }
 
 }
+
 // Ajax for Saving download path
 add_action('wp_ajax_wp_download_save_path','wp_download_save_path');
 function wp_download_save_path(){
-    $directory_path = $_POST['wp_download_path'];
-    $directory_path = stripslashes($directory_path);
-    if(!empty($directory_path) and is_dir($directory_path) and is_writable($directory_path)) {
+
+    $directory_path = stripslashes($_POST['wp_download_path']);
+    $result = is_Valid_Upload_Path($directory_path);
+    if($result["is_valid"]) {
         update_option('wp_download_path',$directory_path);
-        wp_send_json(['wp_download_path'=>$directory_path]);
+        wp_send_json(['wp_download_path'=>$directory_path,
+            "message"=>$result["message"]],200);
     }
     else{
-        wp_send_json_error("خطا در ذخیره سازی داده. مقدار معتبر را وارد کنید...");
+        wp_send_json(["message"=>$result["message"]],400);
     }
 
 }
+
+// Ajax for Saving Login Form Settings
+add_action('wp_ajax_wp_download_login_setting','wp_download_login_setting');
+function wp_download_login_setting(){
+
+
+    $result = is_Empty_Text($_POST['wp_download_login_title']);
+    if($result["is_valid"]) {
+        update_option('wp_download_login_title',$_POST['wp_download_login_title']);
+    }
+    else{
+        wp_send_json(["message"=>$result["message"]],400);
+    }
+    if((bool)$_POST['wp_download_mobile_login']){
+        update_option('wp_download_mobile_login',$_POST['wp_download_mobile_login']);
+    }
+    else{
+        delete_option('wp_download_mobile_login');
+    }
+
+    wp_send_json(["message"=>$result["message"]],200);
+}
+
+// Ajax for Edit User Mobile and Phone and Address
+add_action('wp_ajax_user_list_edit_dialog_button_edit','user_list_edit_dialog_button_edit');
+function user_list_edit_dialog_button_edit(){
+
+
+
+    if(isset($_POST['user_id']) and isset($_POST['user_meta']) and isset($_POST['user_meta_value'])){
+        update_user_meta(intval($_POST['user_id']),$_POST['user_meta'],$_POST['user_meta_value']);
+
+        wp_send_json(["message"=>"تغییرات انجام شد"],200);
+
+    }
+    else{
+        wp_send_json(["message"=>"خطا در اجرای عملیات"],400);
+
+    }
+
+}
+
+
+// Ajax for Changing User Access to Download File
+add_action('wp_ajax_wp_download_user_access','wp_download_user_access');
+function wp_download_user_access(){
+
+    if(isset($_POST['user_id'])){
+        $btn_title="دارد";
+
+        $wp_user = get_user_by('ID',intval($_POST['user_id']));
+        if ( $wp_user->has_cap( 'wp_download') ) {
+            $wp_user->remove_cap('wp_download');
+            $btn_title = "ندارد";
+        }
+        else{
+            $wp_user->add_cap('wp_download');
+        }
+        wp_send_json(["message"=>"تغییرات انجام شد","has_access"=>$btn_title],200);
+
+    }
+    else{
+        wp_send_json(["message"=>"خطا در اجرای عملیات"],400);
+
+    }
+
+}
+
+// Ajax for Saving Register Form Settings
+add_action('wp_ajax_wp_download_register_setting','wp_download_register_setting');
+function wp_download_register_setting(){
+
+
+    $result = is_Empty_Text($_POST['wp_download_register_title']);
+    if($result["is_valid"]) {
+        update_option('wp_download_register_title',$_POST['wp_download_register_title']);
+    }
+    else{
+        wp_send_json(["message"=>$result["message"]],400);
+    }
+    if((bool)$_POST['wp_download_mobile_register']){
+        update_option('wp_download_mobile_register',$_POST['wp_download_mobile_register']);
+    }
+    else{
+        delete_option('wp_download_mobile_register');
+    }
+    if((bool)$_POST['wp_download_phone_register']){
+        update_option('wp_download_phone_register',$_POST['wp_download_phone_register']);
+    }
+    else{
+        delete_option('wp_download_phone_register');
+    }
+    if((bool)$_POST['wp_download_address_register']){
+        update_option('wp_download_address_register',$_POST['wp_download_address_register']);
+    }
+    else{
+        delete_option('wp_download_address_register');
+    }
+
+    wp_send_json(["message"=>$result["message"]],200);
+}
+
+
+
+// Ajax for Register User
+add_action('wp_ajax_nopriv_wp_download_register_user','wp_download_register_user');
+function wp_download_register_user(){
+    $result = registerFormValidation();
+    if(!$result["is_valid"])
+        wp_send_json(['message'=>$result["message"],400]);
+
+    $display_name = apply_filters("pre_user_display_name",$_POST['name']);
+    $user_email = apply_filters("pre_user_email",$_POST['email']);
+    $user_name = apply_filters("pre_user_login",str_replace("@","_",$user_email).rand(100,9999));
+    $user_pass = apply_filters("pre_user_pass",$_POST['password']);
+    $mobile =  $_POST['mobile'];
+    $phone = $_POST['phone'];
+    $address = $_POST['address'];
+
+
+    // Check for Repeated Email
+    $user = get_user_by('email', $user_email);
+    if (!empty($user)){
+        wp_send_json(['message'=>"ایمیل وارد شده تکراری است. لطفا ایمیل دیگری وارد کنید."],400);
+    }
+// Check for Repeated Mobile
+    if(hasMobileOption()){
+        $ValidUserList = get_users(array('meta_key'=>'mobile','meta_value'=>$mobile));
+        if (!empty($ValidUserList)){
+            wp_send_json(['message'=>"موبایل وارد شده تکراری است. لطفا موبایل دیگری وارد کنید."],400);
+        }
+
+    }
+
+
+    //Insert User
+    $user_data = array('user_login'=>$user_name,
+                        'display_name'=>$display_name,
+                        'user_email'=>$user_email,
+                        'user_pass'=>$user_pass);
+    $user_id = wp_insert_user($user_data);
+
+    //Check for Insert User
+    if(is_wp_error($user_id)){
+        wp_send_json(['message'=>"خطا در ذخیره سازی اطلاعات کاربر جدید".$user_id->get_error_message()],400);
+    }
+
+    // Add Meta Data User
+    if(hasMobileOption()) update_user_meta($user_id,"mobile",$mobile);
+    if(hasPhoneOption()) update_user_meta($user_id,"phone",$phone);
+    if(hasAddressOption()) update_user_meta($user_id,"address",$address);
+
+    //Set wp_download Role to User
+    $user = new WP_User($user_id);
+    $user->set_role('wp_download');
+
+    //Send Success Message to User
+    wp_send_json(['message'=>"ثبت نام موفقیت آمیز بود. می توانید  به سایت وارد شوید","success"=>true],200);
+
+}
+
+// Ajax for Login User
+add_action('wp_ajax_nopriv_wp_download_login_user','wp_download_login_user');
+function wp_download_login_user(){
+
+    $result = loginFormValidation();
+    if(!$result["is_valid"])
+        wp_send_json(['message'=>$result["message"],400]);
+
+    $user_email = apply_filters("pre_user_email",$_POST['email']);
+    $user_pass = apply_filters("pre_user_pass",$_POST['password']);
+    $mobile = sanitize_text_field($_POST['mobile']);
+    $redirect_url = $_POST['redirect'];
+
+    $user = null;
+    if(is_LoginWithMobile()){
+        $ValidUserList = get_users(array('meta_key'=>'mobile','meta_value'=>$mobile));
+        if (empty($ValidUserList)){
+            wp_send_json(['message'=>"برای ورود از نام کاربری و کلمه عبور مجاز استفاده کنید"],
+                400);
+        }
+
+        $user = $ValidUserList[0];
+    }
+    else{
+        // Check for  Email
+        $user = wp_authenticate_email_password(null,$user_email,$user_pass);
+        if (is_wp_error($user)){
+            wp_send_json(['message'=>"برای ورود از نام کاربری و کلمه عبور مجاز استفاده کنید"],
+                400);
+
+        }
+    }
+
+
+    // Login With New Registered User
+    $user_name = $user->user_login;
+
+    $cred = array('user_login' => $user_name,
+        'user_password' => $user_pass);
+
+    $user = wp_signon( $cred, false );
+
+    if (is_wp_error($user)){
+        wp_send_json(['message'=>"امکان ورود به سایت وجود ندارد"],
+            400);
+
+    }
+    wp_send_json(['message'=>$user->display_name.' خوش آمدید'],
+        200);
+
+
+}
+
+// Ajax for Download file
+add_action('wp_ajax_wp_download_file','wp_download_file');
+function wp_download_file(){
+
+    if(current_user_can('wp_download')){
+
+        $fileName = get_post_meta($_POST['post_id'],"wp_download_file_name",true);
+        $wp_download_directory = get_option('wp_download_path');
+
+        if(!($wp_download_directory[strlen($wp_download_directory)-1] ==DIRECTORY_SEPARATOR ))
+            $wp_download_directory = $wp_download_directory.DIRECTORY_SEPARATOR;
+
+        $file = $wp_download_directory.$fileName;
+
+
+        if (is_file($file)) {
+
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename="'.basename($file).'"');
+            readfile($file);
+            exit();
+        }
+
+    }
+
+
+
+
+}
+
+
 
 //Add MetaBox Upload File To Post
 add_action('add_meta_boxes_post','wp_download_add_meta_box');
@@ -144,124 +403,3 @@ function update_edit_form() {
     echo ' enctype="multipart/form-data"';
 }
 add_action( 'post_edit_form_tag', 'update_edit_form' );
-
-// Ajax for Register User
-add_action('wp_ajax_wp_download_register_user','wp_download_register_user');
-function wp_download_register_user(){
-
-    $display_name = $_POST['name'];
-    $user_email = $_POST['email'];
-    $user_name = str_replace("@","_",$user_email);
-    $mobile = $_POST['mobile'];
-    $user_pass = $_POST['password'];
-    $redirect_url = $_POST['redirect'];
-
-
-    // Check for Repeated Email
-    $user = get_user_by('email', $user_email);
-    if (!empty($user)){
-        wp_send_json(['message'=>"ایمیل وارد شده تکراری است. لطفا ایمیل دیگری وارد کنید."]);
-        return;
-    }
-
-    //Insert User
-    $user_data = array('user_login'=>$user_name,
-                        'display_name'=>$display_name,
-                        'user_email'=>$user_email,
-                        'user_pass'=>$user_pass);
-    $user_id = wp_insert_user($user_data);
-
-    //Check for Insert User
-    if(is_wp_error($user_id)){
-        wp_send_json(['message'=>"خطا در ذخیره سازی اطلاعات کاربر جدید".$user_id->get_error_message()]);
-        return;
-    }
-
-    // Add Meta Mobile User
-    update_user_meta($user_id,"mobile",$mobile);
-
-    //Set wp_download Role to User
-    $user = new WP_User($user_id);
-    $user->set_role('wp_download');
-
-    //Send Success Message to User
-    wp_send_json(['message'=>"ثبت نام موفقیت آمیز بود. می توانید با ایمیل خود به سایت وارد شوید","success"=>true]);
-
-
-    // Login With New Registered User
-//    $cred = array('user_login' => $user_name,
-//        'user_password' => $user_pass);
-//    $user = wp_signon( $cred, false );
-//    wp_send_json(['message'=>$user->ID." redirect ".$redirect_url]);
-
-//    ob_start();
-//    wp_redirect($redirect_url);
-//    header("Location: ".$redirect_url);
-//    die();
-}
-
-// Ajax for Login User
-add_action('wp_ajax_wp_download_login_user','wp_download_login_user');
-function wp_download_login_user(){
-
-    $user_email = $_POST['email'];
-    $user_name = str_replace("@","_",$user_email);
-    $user_pass = $_POST['password'];
-    $redirect_url = $_POST['redirect'];
-
-
-    // Check for Repeated Email
-    $user = get_user_by('email', $user_email);
-    if (empty($user)){
-        wp_send_json(['message'=>"برای ورود از نام کاربری و کلمه عبور مجاز استفاده کنید"]);
-        return;
-    }
-
-
-
-    // Login With New Registered User
-    $cred = array('user_login' => $user_name,
-        'user_password' => $user_pass);
-    $user = wp_signon( $cred, false );
-
-//    wp_send_json(['message'=>$user->ID." current user is ".wp_get_current_user()->ID]);
-
-    wp_send_json(['message'=>$user->display_name.' خوش آمدید']);
-
-//    wp_redirect($redirect_url);
-//    exit();
-}
-
-// Ajax for Download file
-add_action('wp_ajax_wp_download_file','wp_download_file');
-function wp_download_file(){
-
-    if(current_user_can('wp_download')){
-
-        $fileName = get_post_meta($_POST['post_id'],"wp_download_file_name",true);
-        $wp_download_directory = get_option('wp_download_path');
-
-        if(!($wp_download_directory[strlen($wp_download_directory)-1] ==DIRECTORY_SEPARATOR ))
-            $wp_download_directory = $wp_download_directory.DIRECTORY_SEPARATOR;
-
-        $file = $wp_download_directory.$fileName;
-
-
-        if (is_file($file)) {
-
-            header("Expires: 0");
-            header("Cache-Control: no-cache, no-store, must-revalidate");
-            header('Cache-Control: pre-check=0, post-check=0, max-age=0', false);
-            header("Pragma: no-cache");
-            header("Content-Disposition:attachment; filename=".basename($file));
-            header("Content-Type: application/force-download");
-            readfile($file);
-            exit();
-        }
-
-    }
-
-
-
-
-}
