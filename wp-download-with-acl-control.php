@@ -332,9 +332,17 @@ function wp_download_file(){
 
         if (is_file($file)) {
 
-            header('Content-Type: application/octet-stream');
+            header('Pragma: public'); 	// required
+            header('Expires: 0');		// no cache
+            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+            header('Last-Modified: '.gmdate ('D, d M Y H:i:s', filemtime ($file)).' GMT');
+            header('Cache-Control: private',false);
+            header('Content-Type: application/force-download');
             header('Content-Disposition: attachment; filename="'.basename($file).'"');
-            readfile($file);
+            header('Content-Transfer-Encoding: binary');
+            header('Content-Length: '.filesize($file));	// provide file size
+            header('Connection: close');
+            readfile($file);		// push it out
             exit();
         }
 
@@ -367,9 +375,9 @@ function wp_download_meta_save($post_id){
     //get wp_download_path from plugin option
     $wp_download_directory = get_option('wp_download_path');
     if(empty($wp_download_directory) or !is_dir($wp_download_directory))
-        wp_die("مسیر ذخیره سازی را در قسمت تنظیمات پلاگین اصلاح کنید.","خطای مسیر ذخیره سازی");
+        wp_die("مسیر ذخیره سازی را در قسمت تنظیمات پلاگین اصلاح کنید."."<a href=".get_admin_url(null,"admin.php?page=wp_download_with_acl").">صفحه تنظیمات</a>","خطای مسیر ذخیره سازی");
 
-    if (($_FILES['wp_uploaded_file']['name']!="")){
+    if (isset($_FILES['wp_uploaded_file']) and ($_FILES['wp_uploaded_file']['name']!="")){
         // Where the file is going to be stored
         $target_dir = $wp_download_directory;
         $file = $_FILES['wp_uploaded_file']['name'];
@@ -381,7 +389,7 @@ function wp_download_meta_save($post_id){
 
 // Check if file already exists
         if (file_exists($path_filename_ext)) {
-            wp_die("یک فایل با همین نام موجود است، لطفا نام فایل را تغییر داده و دوباره انتحان کنید.","نام فایل تکراری");
+            wp_die("یک فایل با همین نام موجود است، لطفا نام فایل را تغییر داده و دوباره انتحان کنید."."<a href=".get_admin_url(null,"post.php?post={$post_id}&action=edit").">صفحه ویرایش</a>","نام فایل تکراری");
         }else{
 
             move_uploaded_file($temp_name,$path_filename_ext);
@@ -390,7 +398,7 @@ function wp_download_meta_save($post_id){
                 unlink($target_dir.DIRECTORY_SEPARATOR.get_post_meta($post_id,"wp_download_file_name",true));
 
             update_post_meta($post_id,'wp_download_file_name',$filename.".".$ext);
-            wp_die("بارگذاری انجام شد","موفقیت در بارگذاری فایل");
+            wp_die("بارگذاری انجام شد"."<a href=".get_admin_url(null,"post.php?post={$post_id}&action=edit").">صفحه ویرایش</a>","موفقیت در بارگذاری فایل");
         }
     }
 
