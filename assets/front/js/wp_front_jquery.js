@@ -1,5 +1,7 @@
 jQuery(document).ready(
     function ($) {
+        console.log('RUN');
+
 
         let has_mobile =  false;
         let has_mobile_login =  false;
@@ -36,8 +38,8 @@ jQuery(document).ready(
 
 
         //Open Dialog
-        $("#wp_download_login_or_register").on("click",function () {
-            $( "#mainDialog" ).dialog( "open" );
+        $(".wp_download_login_or_register").on("click",function () {
+            $( "#mainDialog" ).data('d_caller',$(".wp_download_login_or_register")).dialog( "open" );
         });
 
 
@@ -51,15 +53,7 @@ jQuery(document).ready(
             let address = (has_address? $("#address_register").val():'');
             let password = $("#password_register").val();
             let cpassword = $("#cpassword_register").val();
-            // if (name == '' || email == '' || (has_mobile && mobile == '') || (has_phone && phone == '') || (has_address && address == '') || password == '' || cpassword == '') {
-            //     alert("لطفا همه فیلدها را پرکنید");
-            // }  else if ((password.length) < 5) {
-            //     alert("طول کلمه عبور باید حداقل 5 باشد");
-            // } else if (password!=cpassword) {
-            //     alert("کلمات عبور وارد شده، یکسان نیستند. دوباره تلاش کتید.");
-            // }
-            //  else{
-
+            let d_caller = $( "#mainDialog" ).data('d_caller');
                 $.ajax({
                     url:'wp-admin/admin-ajax.php',
                     type:'post',
@@ -72,7 +66,7 @@ jQuery(document).ready(
                         address:address,
                         password:password,
                         cpassword:cpassword,
-                        redirect:$("#wp_download_login_or_register").attr("data-value")
+                        redirect:d_caller.attr("data-value")
                     },
                     success:function (response) {
                         $("#message_board").show();
@@ -108,17 +102,7 @@ jQuery(document).ready(
             let email = $("#email_login").val();
             let mobile = (has_mobile_login? $("#mobile_login").val():'');
             let password = $("#password_login").val();
-
-            // if (email == '' ||password == '') {
-            //     alert("لطفا همه فیلدها را پرکنید");
-            // } else if (!validateEmail(email)) {
-            //     alert("ایمیل وارد شده، معتبر نیست");
-            // }  else if ((password.length) < 8) {
-            //     alert("طول کلمه عبور باید حداقل 8 باشد");
-            // }
-            // else {
-
-                // alert('validate and send to server!');
+            let d_caller = $( "#mainDialog" ).data('d_caller');
                 $.ajax({
                     url:'wp-admin/admin-ajax.php',
                     type:'post',
@@ -127,7 +111,7 @@ jQuery(document).ready(
                         email: email,
                         mobile: mobile,
                         password:password,
-                        redirect:$("#wp_download_login_or_register").attr("data-value")
+                        redirect:d_caller.attr("data-value")
                     },
                     success:function (response) {
                         $("#message_board").show();
@@ -135,7 +119,7 @@ jQuery(document).ready(
                         $("#message_board").removeClass("wp_download_error");
                         $("#message_board").addClass("wp_download_success");
                         $("#message_board").delay(3000).hide(400);
-                        setTimeout(function(){ window.location.replace($("#wp_download_login_or_register").attr("data-value"));}, 1000);
+                        setTimeout(function(){ window.location.replace(d_caller.attr("data-value"));}, 1000);
 
                     },
                     error:function (error) {
@@ -160,15 +144,15 @@ jQuery(document).ready(
         });
 
         //Ajax Download File
-        $("#wp_download_file").click(function() {
+        $(".wp_download_file").click(function() {
             // alert('Downloading...')
             $.ajax({
                 url:'wp-admin/admin-ajax.php',
                 type:'post',
                 data:{
                     action:'wp_download_file',
-                    post_id:$("#wp_download_file").attr("data-in"),
-                    file_name:$("#wp_download_file").attr("data-value")
+                    post_id:$(this).attr("data-in"),
+                    file_name:$(this).attr("data-value")
                 },
                 success:function (response) {
                     // alert(response.message);
