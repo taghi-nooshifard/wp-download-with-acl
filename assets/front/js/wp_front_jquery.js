@@ -162,7 +162,7 @@ jQuery(document).ready(
 
                     // Create a new Blob object using the
                     //response data of the onload object
-                    let blob = new Blob([atob(response)], {type: 'application/octet-stream'});
+                    let blob = new Blob([response], {type: 'application/octet-stream'});
                     //Create a link element, hide it, direct
                     //it towards the blob, and then 'click' it programatically
                     let a = document.createElement("a");

@@ -343,7 +343,7 @@ function wp_download_file(){
             flush(); //<--- add this line
 
             $data = file_get_contents($file);
-            print(base64_encode($data));
+            print($data);
             exit;
         }
 
