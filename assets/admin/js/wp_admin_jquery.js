@@ -94,7 +94,7 @@ jQuery(document).ready(
                 error:function (error) {
                     $("#user_list_edit_dialog_message").show();
                     $("#user_list_edit_dialog_message").html(error.responseJSON.message);
-                    $("#user_list_edit_dialog_message").removeClass("wp_download_success");
+                    $("#user_list_edit_dialog_message").css("wp_download_success");
                     $("#user_list_edit_dialog_message").addClass("wp_download_error");
                     $("#user_list_edit_dialog_message").delay(3000).hide(400);
 

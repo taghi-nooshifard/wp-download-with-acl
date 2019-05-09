@@ -330,20 +330,21 @@ function wp_download_file(){
         $file = $wp_download_directory.$fileName;
 
 
-        if (is_file($file)) {
 
-            header('Pragma: public'); 	// required
-            header('Expires: 0');		// no cache
-            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-            header('Last-Modified: '.gmdate ('D, d M Y H:i:s', filemtime ($file)).' GMT');
-            header('Cache-Control: private',false);
-            header('Content-Type: application/force-download');
-            header('Content-Disposition: attachment; filename="'.basename($file).'"');
-            header('Content-Transfer-Encoding: binary');
-            header('Content-Length: '.filesize($file));	// provide file size
-            header('Connection: close');
-            readfile($file);		// push it out
-            exit();
+
+        if (file_exists($file)) {
+            header ("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+            header('Content-Type: application/octet-stream;');
+            header("Content-Transfer-Encoding: Binary");
+            header("Content-length: ".filesize($file));
+            header("Content-disposition: attachment; filename=\"".basename($file)."\"");
+            ob_clean(); //<--- add this line
+
+            flush(); //<--- add this line
+
+            $data = file_get_contents($file);
+            print(base64_encode($data));
+            exit;
         }
 
     }

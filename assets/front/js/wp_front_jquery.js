@@ -55,7 +55,7 @@ jQuery(document).ready(
             let cpassword = $("#cpassword_register").val();
             let d_caller = $( "#mainDialog" ).data('d_caller');
                 $.ajax({
-                    url:'wp-admin/admin-ajax.php',
+                    url:d_caller.attr("data-url")+'/wp-admin/admin-ajax.php',
                     type:'post',
                     data:{
                         action:'wp_download_register_user',
@@ -104,7 +104,7 @@ jQuery(document).ready(
             let password = $("#password_login").val();
             let d_caller = $( "#mainDialog" ).data('d_caller');
                 $.ajax({
-                    url:'wp-admin/admin-ajax.php',
+                    url:d_caller.attr("data-url")+'/wp-admin/admin-ajax.php',
                     type:'post',
                     data:{
                         action:'wp_download_login_user',
@@ -146,8 +146,9 @@ jQuery(document).ready(
         //Ajax Download File
         $(".wp_download_file").click(function() {
             // alert('Downloading...')
+            let file_name = $(this).attr("data-value");
             $.ajax({
-                url:'wp-admin/admin-ajax.php',
+                url:$(this).attr("data-url")+'/wp-admin/admin-ajax.php',
                 type:'post',
                 data:{
                     action:'wp_download_file',
@@ -156,6 +157,26 @@ jQuery(document).ready(
                 },
                 success:function (response) {
                     // alert(response.message);
+                     console.log(response);
+
+
+                    // Create a new Blob object using the
+                    //response data of the onload object
+                    let blob = new Blob([atob(response)], {type: 'application/octet-stream'});
+                    //Create a link element, hide it, direct
+                    //it towards the blob, and then 'click' it programatically
+                    let a = document.createElement("a");
+                    a.style = "display: none";
+                    document.body.appendChild(a);
+                    //Create a DOMString representing the blob
+                    //and point the link element towards it
+                    let url = createObjectURL(blob);
+                    a.href = url;
+                    console.log(file_name);
+                    a.download = file_name;
+                    //programatically click the link to trigger the download
+                    a.click();
+                    //release the reference to the file by revoking the Object URL
 
                 },
                 error:function (error) {
@@ -165,5 +186,14 @@ jQuery(document).ready(
 
         });
 
+        function createObjectURL ( file ) {
+            if ( window.webkitURL ) {
+                return window.webkitURL.createObjectURL( file );
+            } else if ( window.URL && window.URL.createObjectURL ) {
+                return window.URL.createObjectURL( file );
+            } else {
+                return null;
+            }
+        }
     }
 );
